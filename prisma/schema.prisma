@@ -1,0 +1,269 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model SiteSetting {
+  id                 Int      @id @default(1)
+  showFeed           Boolean  @default(true)
+  showServices       Boolean  @default(true)
+  showAchievements   Boolean  @default(true)
+  showHackathons     Boolean  @default(true)
+  showTeam           Boolean  @default(true)
+  enable3DHero       Boolean  @default(true)
+  maintenanceMode    Boolean  @default(false)
+  availabilityStatus String   @default("AVAILABLE")
+  announcementActive Boolean  @default(false)
+  announcementText   String   @default("")
+  announcementLink   String   @default("")
+  heroTagline        String   @default("")
+  heroSubtext        String   @default("") @db.Text
+  contactEmail       String   @default("turbobits.studio@gmail.com")
+  updatedAt          DateTime @updatedAt
+}
+
+model Member {
+  id                 String               @id
+  email              String               @unique
+  username           String               @unique
+  role               String               @default("MEMBER")
+  isActive           Boolean              @default(true)
+  isVisibleOnSite    Boolean              @default(true)
+  fullName           String
+  headline           String
+  bio                String               @db.Text
+  location           String
+  avatarUrl          String?              @db.Text
+  bannerUrl          String?              @db.Text
+  resumeUrl          String?              @db.Text
+  availabilityBadge  String?
+  socialsJson        Json
+  themeAccent        String?
+  sectionConfigJson  Json
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  experiences        MemberExperience[]
+  skills             MemberSkill[]
+  personalProjects   Project[]            @relation("PersonalProjects")
+  contributions      ProjectContributor[]
+  achievements       Achievement[]
+  feedPosts          FeedPost[]
+  auditLogs          AuditLog[]
+}
+
+model MemberExperience {
+  id           String  @id
+  memberId     String
+  category     String
+  title        String
+  organization String
+  location     String
+  startDate    String
+  endDate      String?
+  isCurrent    Boolean @default(false)
+  description  String  @db.Text
+  sortOrder    Int     @default(0)
+  member       Member  @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId])
+}
+
+model MemberSkill {
+  id          String @id
+  memberId    String
+  name        String
+  category    String
+  proficiency String
+  member      Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId])
+}
+
+model Hackathon {
+  id                 String     @id
+  slug               String     @unique
+  name               String
+  organizer          String
+  location           String
+  date               String
+  result             String
+  summary            String     @db.Text
+  coverImageUrl      String?    @db.Text
+  galleryUrlsJson    Json
+  participantIdsJson Json
+  createdAt          DateTime   @default(now())
+  projects           Project[]
+  feedPosts          FeedPost[]
+}
+
+model Project {
+  id                String               @id
+  slug              String               @unique
+  scope             String               @default("TEAM")
+  ownerId           String
+  hackathonId       String?
+  title             String
+  tagline           String
+  summary           String               @db.Text
+  problemStatement  String               @db.Text
+  solutionOverview  String               @db.Text
+  architectureNotes String               @db.Text
+  techStackJson     Json
+  category          String
+  projectDate       String
+  liveUrl           String?              @db.Text
+  githubUrl         String?              @db.Text
+  demoVideoUrl      String?              @db.Text
+  coverImageUrl     String?              @db.Text
+  status            String               @default("COMPLETED")
+  featured          Boolean              @default(false)
+  displayOrder      Int                  @default(0)
+  viewsCount        Int                  @default(0)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  owner             Member               @relation("PersonalProjects", fields: [ownerId], references: [id])
+  hackathon         Hackathon?           @relation(fields: [hackathonId], references: [id])
+  contributors      ProjectContributor[]
+  files             ProjectFile[]
+  media             ProjectMedia[]
+  feedPosts         FeedPost[]
+
+  @@index([ownerId])
+  @@index([hackathonId])
+}
+
+model ProjectContributor {
+  id                  String  @id
+  projectId           String
+  memberId            String
+  role                String
+  contributionSummary String  @db.Text
+  project             Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  member              Member  @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, memberId])
+  @@index([memberId])
+}
+
+model ProjectFile {
+  id            String   @id
+  projectId     String
+  fileName      String
+  description   String   @db.Text
+  fileType      String
+  fileSizeBytes Int
+  filebaseKey   String
+  publicUrl     String   @db.Text
+  downloadCount Int      @default(0)
+  uploadedById  String
+  createdAt     DateTime @default(now())
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model ProjectMedia {
+  id        String  @id
+  projectId String
+  url       String  @db.Text
+  caption   String
+  mediaType String
+  sortOrder Int     @default(0)
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model Achievement {
+  id                  String   @id
+  scope               String
+  memberId            String?
+  title               String
+  issuerOrEvent       String
+  rankOrResult        String
+  date                String
+  description         String   @db.Text
+  certificateUrl      String?  @db.Text
+  credentialUrl       String?  @db.Text
+  taggedMemberIdsJson Json
+  isFeatured          Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  member              Member?  @relation(fields: [memberId], references: [id])
+
+  @@index([memberId])
+}
+
+model FeedPost {
+  id                  String     @id
+  authorId            String
+  postType            String
+  title               String
+  content             String     @db.Text
+  mediaUrlsJson       Json
+  linkedProjectId     String?
+  linkedHackathonId   String?
+  taggedMemberIdsJson Json
+  clapsCount          Int        @default(0)
+  isPinned            Boolean    @default(false)
+  isPublished         Boolean    @default(true)
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  author              Member     @relation(fields: [authorId], references: [id])
+  linkedProject       Project?   @relation(fields: [linkedProjectId], references: [id])
+  linkedHackathon     Hackathon? @relation(fields: [linkedHackathonId], references: [id])
+
+  @@index([authorId])
+  @@index([linkedProjectId])
+  @@index([linkedHackathonId])
+}
+
+model ServiceOffering {
+  id                 String  @id
+  title              String
+  tagline            String
+  description        String  @db.Text
+  deliverablesJson   Json
+  startingPriceLabel String
+  turnaroundLabel    String
+  isActive           Boolean @default(true)
+  sortOrder          Int     @default(0)
+}
+
+model Inquiry {
+  id           String   @id
+  name         String
+  email        String
+  organization String   @default("")
+  phone        String   @default("")
+  serviceType  String
+  budgetRange  String
+  timeline     String
+  message      String   @db.Text
+  status       String   @default("NEW")
+  adminNotes   String   @default("") @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model AuditLog {
+  id          String   @id
+  actorId     String
+  action      String
+  entityType  String
+  entityId    String
+  detailsJson Json
+  createdAt   DateTime @default(now())
+  actor       Member   @relation(fields: [actorId], references: [id])
+
+  @@index([actorId])
+}
+
+model ContactSubscriber {
+  id        String   @id
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
