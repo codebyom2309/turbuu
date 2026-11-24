@@ -1,0 +1,6 @@
+{
+  "name": "TurboBits — Engineering Studio & Platform",
+  "description": "TurboBits (turbobits.in) — Interactive 3D engineering studio showcase, multi-member portfolio CMS, project vault, hackathon registry, live activity feed, and admin control center.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
